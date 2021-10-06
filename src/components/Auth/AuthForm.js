@@ -1,39 +1,94 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import classes from './AuthForm.module.css';
 
 const AuthForm = () => {
-  const [isLogin, setIsLogin] = useState(true);
+    const emailInputRef = useRef();
+    const passwordInputRef = useRef();
+    const [isLogin, setIsLogin] = useState(true);
+    const [isSendingRequest, setIsSendingRequest] = useState(false)
 
-  const switchAuthModeHandler = () => {
-    setIsLogin((prevState) => !prevState);
-  };
+    const switchAuthModeHandler = () => {
+        setIsLogin((prevState) => !prevState);
+    };
 
-  return (
-    <section className={classes.auth}>
-      <h1>{isLogin ? 'Login' : 'Sign Up'}</h1>
-      <form>
-        <div className={classes.control}>
-          <label htmlFor='email'>Your Email</label>
-          <input type='email' id='email' required />
-        </div>
-        <div className={classes.control}>
-          <label htmlFor='password'>Your Password</label>
-          <input type='password' id='password' required />
-        </div>
-        <div className={classes.actions}>
-          <button>{isLogin ? 'Login' : 'Create Account'}</button>
-          <button
-            type='button'
-            className={classes.toggle}
-            onClick={switchAuthModeHandler}
-          >
-            {isLogin ? 'Create new account' : 'Login with existing account'}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
+    const submitHandler = (e) => {
+        e.preventDefault();
+
+        setIsSendingRequest(true);
+
+        if (isLogin) {
+        } else {
+            fetch(
+                'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyD7dOhtsc_pxz7XF29jyBTo4K6rB6NHL7A',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: emailInputRef.current.value,
+                        password: passwordInputRef.current.value,
+                        returnSecureToken: true,
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            ).then((response) => {
+                setIsSendingRequest(false);
+
+                if (response.ok) {
+                } else {
+                    return response.json().then((data) => {
+                        let errorMessage = 'Authentication failed!';
+
+                        if (data && data.error && data.error.message) {
+                            errorMessage = data.error.message;
+                        }
+
+                        alert(errorMessage);
+                    });
+                }
+            });
+        }
+    };
+
+    return (
+        <section className={classes.auth}>
+            <h1>{isLogin ? 'Login' : 'Sign Up'}</h1>
+            <form onSubmit={submitHandler}>
+                <div className={classes.control}>
+                    <label htmlFor="email">Your Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        required
+                        ref={emailInputRef}
+                    />
+                </div>
+                <div className={classes.control}>
+                    <label htmlFor="password">Your Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        required
+                        ref={passwordInputRef}
+                    />
+                </div>
+                <div className={classes.actions}>
+                    {!isSendingRequest && <button>{isLogin ? 'Login' : 'Create Account'}</button>}
+                    {isSendingRequest && <p>Sending request...</p>}
+                    <button
+                        type="button"
+                        className={classes.toggle}
+                        onClick={switchAuthModeHandler}
+                    >
+                        {isLogin
+                            ? 'Create new account'
+                            : 'Login with existing account'}
+                    </button>
+                </div>
+            </form>
+        </section>
+    );
 };
 
 export default AuthForm;
