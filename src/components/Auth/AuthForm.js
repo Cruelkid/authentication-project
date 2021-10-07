@@ -6,7 +6,7 @@ const AuthForm = () => {
     const emailInputRef = useRef();
     const passwordInputRef = useRef();
     const [isLogin, setIsLogin] = useState(true);
-    const [isSendingRequest, setIsSendingRequest] = useState(false)
+    const [isSendingRequest, setIsSendingRequest] = useState(false);
 
     const switchAuthModeHandler = () => {
         setIsLogin((prevState) => !prevState);
@@ -14,28 +14,33 @@ const AuthForm = () => {
 
     const submitHandler = (e) => {
         e.preventDefault();
-
+        let url;
         setIsSendingRequest(true);
 
         if (isLogin) {
+            url =
+                'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyD7dOhtsc_pxz7XF29jyBTo4K6rB6NHL7A';
         } else {
-            fetch(
-                'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyD7dOhtsc_pxz7XF29jyBTo4K6rB6NHL7A',
-                {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        email: emailInputRef.current.value,
-                        password: passwordInputRef.current.value,
-                        returnSecureToken: true,
-                    }),
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }
-            ).then((response) => {
+            url =
+                'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyD7dOhtsc_pxz7XF29jyBTo4K6rB6NHL7A';
+        }
+
+        fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                email: emailInputRef.current.value,
+                password: passwordInputRef.current.value,
+                returnSecureToken: true,
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+            .then((response) => {
                 setIsSendingRequest(false);
 
                 if (response.ok) {
+                    return response.json();
                 } else {
                     return response.json().then((data) => {
                         let errorMessage = 'Authentication failed!';
@@ -44,11 +49,17 @@ const AuthForm = () => {
                             errorMessage = data.error.message;
                         }
 
-                        alert(errorMessage);
+                        // alert(errorMessage);
+                        throw new Error(errorMessage);
                     });
                 }
+            })
+            .then((data) => {
+                console.log(data);
+            })
+            .catch((err) => {
+                alert(err);
             });
-        }
     };
 
     return (
@@ -74,7 +85,9 @@ const AuthForm = () => {
                     />
                 </div>
                 <div className={classes.actions}>
-                    {!isSendingRequest && <button>{isLogin ? 'Login' : 'Create Account'}</button>}
+                    {!isSendingRequest && (
+                        <button>{isLogin ? 'Login' : 'Create Account'}</button>
+                    )}
                     {isSendingRequest && <p>Sending request...</p>}
                     <button
                         type="button"
