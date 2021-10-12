@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useState } from 'react';
+
+let logoutTimer;
 
 const AuthContext = React.createContext({
     token: '',
@@ -17,24 +19,57 @@ const calculateRemainingTime = (expirationTime) => {
     return remainingTime;
 };
 
+const retrieveStoredToken = () => {
+    const storedToken = localStorage.getItem('auth_token');
+    const storedExpirationDate = localStorage.getItem('exp_time');
+
+    const remainingTime = calculateRemainingTime(storedExpirationDate);
+
+    if (remainingTime <= 60000) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('exp_time');
+
+        return null;
+    }
+
+    return {
+        token: storedToken,
+        duration: remainingTime,
+    };
+};
+
 export const AuthContextProvider = (props) => {
-    const initialToken = localStorage.getItem('auth_token');
+    const tokenData = retrieveStoredToken();
+    let initialToken;
+
+    if (tokenData) {
+        initialToken = tokenData.token;
+    }
     const [token, setToken] = useState(initialToken);
     const userIsLoggedIn = !!token;
 
-    const logoutHandler = () => {
+    const logoutHandler = useCallback(() => {
         setToken(null);
         localStorage.removeItem('auth_token');
-    };
+        localStorage.removeItem('exp_time');
+    }, []);
 
     const loginHandler = (token, expirationTime) => {
         setToken(token);
         localStorage.setItem('auth_token', token);
+        localStorage.setItem('exp_time', expirationTime);
 
         const remainingTime = calculateRemainingTime(expirationTime);
 
-        setTimeout(logoutHandler, remainingTime);
+        logoutTimer = setTimeout(logoutHandler, remainingTime);
     };
+
+    useEffect(() => {
+        if (tokenData) {
+            console.log(tokenData.duration);
+            logoutTimer = setTimeout(logoutHandler, tokenData.duration);
+        }
+    }, [logoutHandler, tokenData]);
 
     const contextValue = {
         token: token,
